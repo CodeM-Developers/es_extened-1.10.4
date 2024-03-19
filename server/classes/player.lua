@@ -189,8 +189,6 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
         return nil
     end
 
-    ---@param minimal boolean
-    ---@return table
     function self.getInventory(minimal)
         return exports["codem-inventory"]:GetInventory(self.identifier, self.source)
     end
@@ -359,22 +357,14 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
         end
     end
 
-    ---@param itemName string
-    ---@return table | nil
     function self.getInventoryItem(itemName)
         return exports["codem-inventory"]:GetItemByName(self.source, itemName)
     end
 
-    ---@param itemName string
-    ---@param count number
-    ---@return void
     function self.addInventoryItem(itemName, count)
         return exports["codem-inventory"]:AddItem(self.source, itemName, count)
     end
 
-    ---@param itemName string
-    ---@param count number
-    ---@return void
     function self.removeInventoryItem(itemName, count)
         return exports["codem-inventory"]:RemoveItem(self.source, itemName, count)
     end
@@ -872,4 +862,3 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
     return self
 end
-
