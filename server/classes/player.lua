@@ -25,7 +25,7 @@ local _assert = assert
 function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, weight, job, loadout, name, coords,
                               metadata)
     local targetOverrides = Config.PlayerFunctionOverride and Core.PlayerFunctionOverrides
-    [Config.PlayerFunctionOverride] or {}
+        [Config.PlayerFunctionOverride] or {}
 
     local self = {}
 
@@ -73,8 +73,8 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     function self.setCoords(coordinates)
         local ped <const> = _GetPlayerPed(self.source)
         local vector = type(coordinates) == "vector4" and coordinates or
-        type(coordinates) == "vector3" and vector4(coordinates, 0.0) or
-        vec(coordinates.x, coordinates.y, coordinates.z, coordinates.heading or 0.0)
+            type(coordinates) == "vector3" and vector4(coordinates, 0.0) or
+            vec(coordinates.x, coordinates.y, coordinates.z, coordinates.heading or 0.0)
         _SetEntityCoords(ped, vector.xyz, false, false, false, false)
         _SetEntityHeading(ped, vector.w)
     end
@@ -104,7 +104,13 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
     ---@return number
     function self.getMoney()
-        return self.getAccount("money").money
+        local cashItem = exports['codem-inventory']:CheckCashItems()
+        if not cashItem then
+            return self.getAccount("money").money
+        else
+            local moneyAmount = exports['codem-inventory']:GetItemsTotalAmount(self.source, 'cash')
+            return moneyAmount
+        end
     end
 
     ---@param money number
@@ -186,19 +192,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param minimal boolean
     ---@return table
     function self.getInventory(minimal)
-        if minimal then
-            local minimalInventory = {}
-
-            for _, v in ipairs(self.inventory) do
-                if v.count > 0 then
-                    minimalInventory[v.name] = v.count
-                end
-            end
-
-            return minimalInventory
-        end
-
-        return self.inventory
+        return exports["codem-inventory"]:GetInventory(self.identifier, self.source)
     end
 
     ---@return table
@@ -255,10 +249,11 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.setAccountMoney(accountName, money, reason)
+        print('setAccountMoney', accountName, money, reason)
         reason = reason or "unknown"
         if not tonumber(money) then
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(
-            accountName, self.playerId, money))
+                accountName, self.playerId, money))
             return
         end
         if money >= 0 then
@@ -270,13 +265,19 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
                 self.triggerEvent("esx:setAccountMoney", account)
                 _TriggerEvent("esx:setAccountMoney", self.source, accountName, money, reason)
+                if accountName == "money" then
+                    local cashItem = exports['codem-inventory']:CheckCashItems()
+                    if cashItem then
+                        exports['codem-inventory']:SetInventoryItems(self.source, accountName, money)
+                    end
+                end
             else
                 print(("[^1ERROR^7] Tried To Set Invalid Account ^5%s^0 For Player ^5%s^0!"):format(accountName,
                     self.playerId))
             end
         else
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(
-            accountName, self.playerId, money))
+                accountName, self.playerId, money))
         end
     end
 
@@ -285,10 +286,11 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.addAccountMoney(accountName, money, reason)
+        print('addAccountMoney', accountName, money, reason)
         reason = reason or "Unknown"
         if not tonumber(money) then
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(
-            accountName, self.playerId, money))
+                accountName, self.playerId, money))
             return
         end
         if money > 0 then
@@ -299,13 +301,19 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
                 self.triggerEvent("esx:setAccountMoney", account)
                 _TriggerEvent("esx:addAccountMoney", self.source, accountName, money, reason)
+                if accountName == 'money' then
+                    local cashItem = exports['codem-inventory']:CheckCashItems()
+                    if cashItem then
+                        exports['codem-inventory']:AddItem(self.source, accountName, money)
+                    end
+                end
             else
                 print(("[^1ERROR^7] Tried To Set Add To Invalid Account ^5%s^0 For Player ^5%s^0!"):format(accountName,
                     self.playerId))
             end
         else
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(
-            accountName, self.playerId, money))
+                accountName, self.playerId, money))
         end
     end
 
@@ -314,10 +322,11 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
     ---@param reason string
     ---@return void
     function self.removeAccountMoney(accountName, money, reason)
+        print('removeAccountMoney', accountName, money, reason)
         reason = reason or "Unknown"
         if not tonumber(money) then
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(
-            accountName, self.playerId, money))
+                accountName, self.playerId, money))
             return
         end
         if money > 0 then
@@ -334,66 +343,40 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
                 self.triggerEvent("esx:setAccountMoney", account)
                 _TriggerEvent("esx:removeAccountMoney", self.source, accountName, money, reason)
+                if accountName == 'money' then
+                    local cashItem = exports['codem-inventory']:CheckCashItems()
+                    if cashItem then
+                        exports['codem-inventory']:RemoveItem(self.source, accountName, money)
+                    end
+                end
             else
                 print(("[^1ERROR^7] Tried To Set Add To Invalid Account ^5%s^0 For Player ^5%s^0!"):format(accountName,
                     self.playerId))
             end
         else
             print(("[^1ERROR^7] Tried To Set Account ^5%s^0 For Player ^5%s^0 To An Invalid Number -> ^5%s^7"):format(
-            accountName, self.playerId, money))
+                accountName, self.playerId, money))
         end
     end
 
     ---@param itemName string
     ---@return table | nil
     function self.getInventoryItem(itemName)
-        for _, v in ipairs(self.inventory) do
-            if v.name == itemName then
-                return v
-            end
-        end
-        return nil
+        return exports["codem-inventory"]:GetItemByName(self.source, itemName)
     end
 
     ---@param itemName string
     ---@param count number
     ---@return void
     function self.addInventoryItem(itemName, count)
-        local item = self.getInventoryItem(itemName)
-
-        if item then
-            count = ESX.Math.Round(count)
-            item.count = item.count + count
-            self.weight = self.weight + (item.weight * count)
-
-            _TriggerEvent("esx:onAddInventoryItem", self.source, item.name, item.count)
-            self.triggerEvent("esx:addInventoryItem", item.name, item.count)
-        end
+        return exports["codem-inventory"]:AddItem(self.source, itemName, count)
     end
 
     ---@param itemName string
     ---@param count number
     ---@return void
     function self.removeInventoryItem(itemName, count)
-        local item = self.getInventoryItem(itemName)
-
-        if item then
-            count = ESX.Math.Round(count)
-            if count > 0 then
-                local newCount = item.count - count
-
-                if newCount >= 0 then
-                    item.count = newCount
-                    self.weight = self.weight - (item.weight * count)
-
-                    _TriggerEvent("esx:onRemoveInventoryItem", self.source, item.name, item.count)
-                    self.triggerEvent("esx:removeInventoryItem", item.name, item.count)
-                end
-            else
-                print(("[^1ERROR^7] Player ID:^5%s Tried remove a Invalid count -> %s of %s"):format(self.playerId, count,
-                    itemName))
-            end
-        end
+        return exports["codem-inventory"]:RemoveItem(self.source, itemName, count)
     end
 
     ---@param itemName string
@@ -472,7 +455,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
 
         if not ESX.DoesJobExist(newJob, grade) then
             return print(("[es_extended] [^3WARNING^7] Ignoring invalid ^5.setJob()^7 usage for ID: ^5%s^7, Job: ^5%s^7")
-            :format(self.source, job))
+                :format(self.source, job))
         end
 
         local jobObject, gradeObject = ESX.Jobs[newJob], ESX.Jobs[newJob].grades[grade]
@@ -777,7 +760,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
                         returnValues[key] = self.getMeta(index, key)
                     else
                         print(("[^1ERROR^7] xPlayer.getMeta subIndex should be ^5string^7 or ^5table^7! that contains ^5string^7, received ^5%s^7!, skipping...")
-                        :format(type(key)))
+                            :format(type(key)))
                     end
                 end
 
@@ -785,7 +768,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
             end
 
             return print(("[^1ERROR^7] xPlayer.getMeta subIndex should be ^5string^7 or ^5table^7!, received ^5%s^7!")
-            :format(_type))
+                :format(_type))
         end
 
         return metaData
@@ -813,7 +796,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
         if not subValue then
             if _type ~= "number" and _type ~= "string" and _type ~= "table" then
                 return print(("[^1ERROR^7] xPlayer.setMeta ^5%s^7 should be ^5number^7 or ^5string^7 or ^5table^7!")
-                :format(value))
+                    :format(value))
             end
 
             self.metadata[index] = value
@@ -845,7 +828,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
         local metaData = self.metadata[index]
         if metaData == nil then
             return Config.EnableDebug and print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 does not exist!"):format(index)) or
-            nil
+                nil
         end
 
         if not subValues then
@@ -857,7 +840,7 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
                 metaData[subValues] = nil
             else
                 return print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 is not a table! Cannot clear subValue ^5%s^7.")
-                :format(index, subValues))
+                    :format(index, subValues))
             end
         elseif type(subValues) == "table" then
             -- If subValues is a table, we will clear multiple subValues within the table
@@ -868,16 +851,16 @@ function CreateExtendedPlayer(playerId, identifier, group, accounts, inventory, 
                         metaData[subValue] = nil
                     else
                         print(("[^1ERROR^7] xPlayer.clearMeta ^5%s^7 is not a table! Cannot clear subValue ^5%s^7.")
-                        :format(index, subValue))
+                            :format(index, subValue))
                     end
                 else
                     print(("[^1ERROR^7] xPlayer.clearMeta subValues should contain ^5string^7, received ^5%s^7, skipping...")
-                    :format(type(subValue)))
+                        :format(type(subValue)))
                 end
             end
         else
             return print(("[^1ERROR^7] xPlayer.clearMeta ^5subValues^7 should be ^5string^7 or ^5table^7, received ^5%s^7!")
-            :format(type(subValues)))
+                :format(type(subValues)))
         end
 
         Player(self.source).state:set("metadata", self.metadata, true)
