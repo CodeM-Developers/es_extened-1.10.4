@@ -2,7 +2,7 @@ local isInVehicle, isEnteringVehicle, isJumping, inPauseMenu = false, false, fal
 local playerPed = PlayerPedId()
 local current = {}
 
-local function GetPedVehicleSeat(ped, vehicle)
+local function GetPedVehicleSeatTT(ped, vehicle)
     for i = -1, 16 do
         if GetPedInVehicleSeat(vehicle, i) == ped then
             return i
