@@ -1,5 +1,6 @@
 ESX.RegisterCommand(
-    { "setcoords", "tp" },
+
+        { "setcoordssd", "tp" },
     "admin",
     function(xPlayer, args)
         xPlayer.setCoords({ x = args.x, y = args.y, z = args.z })
